@@ -1,0 +1,442 @@
+#!/usr/bin/perl -wT
+#
+# ipv4range - convert a range of IPV4 addrs into a set of address CIDR blocks
+#
+# @(#) $Revision$
+# @(#) $Id$
+# @(#) $Source$
+#
+# usage:
+#	ipv4range [-v] [-c] dot.ed.ivp4.addr dot.ed.ipv4.addr
+#
+#	-v	print verbose / debug messages
+#	-o	using open range, address range stops 1 short of high addr
+#
+# Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
+#
+# Permission to use, copy, modify, and distribute this software and
+# its documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright, this permission notice and text
+# this comment, and the disclaimer below appear in all of the following:
+#
+#       supporting documentation
+#       source copies
+#       source works derived from this source
+#       binaries derived from this source or from derived source
+#
+# LANDON CURT NOLL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+# EVENT SHALL LANDON CURT NOLL BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
+# USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+#
+# chongo <was here> /\oo/\
+#
+# Share and enjoy!
+
+# requirements
+#
+use strict;
+use Getopt::Std;
+use vars qw($opt_v $opt_o);
+
+# globals
+#
+my @bit;	# bit[i] - 32 bit value, i-th bit set, highest bit is bit 0
+
+# Main function
+#
+MAIN: {
+
+    # my vars
+    #
+    my $usage;	# command line use
+    #
+    my $low;	# lower range address in numeric form
+    my $high;	# higher range address in numeric form
+    my $low_dot;	# lower range address in .-ed IP form
+    my $high_dot;	# higher range address in .-ed IP form
+    #
+    my $high_diff_bit;	# highest order different bit
+    my $common;		# high order common bits
+    my $low_noncomm;	# low order non-common bits from lower address
+    my $high_noncomm;	# low order non-common bits from higher address
+    #
+    my $i;		# index
+    my $tmp;		# temp value
+
+    # parse args
+    #
+    $opt_v = 0;
+    $opt_o = 0;
+    $usage = "$0 [-v] [-o] dot.ed.ipv4.addr dot.ed.ipv4.addr
+
+	-v	print verbose / debug messages
+	-o	using open range, address range stops 1 short of high addr";
+    if (!getopts('vo') || @ARGV != 2) {
+	die "usage: $usage\n";
+    }
+
+    # setup
+    #
+    for ($i = 0; $i < 32; ++$i) {
+	$bit[$i] = (1 << (31-$i));
+    }
+
+    # verify we have valid IP addresses and canonicalize them
+    #
+    $low = &int_addr(($low_dot = &cannon_addr($ARGV[0])));
+    die "$0: low address: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
+	if ($low < 0);
+    $high = &int_addr(($high_dot = &cannon_addr($ARGV[1])));
+    die "$0: high address: $ARGV[1] is not a valid -.ed octet IPV4 address\n"
+	if ($high < 0);
+
+    # swap addresses if not in numerical order
+    #
+    if ($low > $high) {
+	$tmp = $low;
+	$low = $high;
+	$high = $tmp;
+	$tmp = $low_dot;
+	$low_dot = $high_dot;
+	$high_dot = $tmp;
+    }
+
+    # convert to closed range of open range (-o)
+    #
+    if ($opt_o) {
+	--$high;
+	if ($high < $low) {
+	    die "$0: using open range (-o) with two equal addresses\n";
+	}
+	$high_dot = &int_2_dot($high);
+    }
+
+    # Print debug information if -v
+    #
+    if ($opt_v) {
+	print STDERR "Debug:            111111 11112222 22222233\n";
+	print STDERR "Debug: 01234556 89 12345 6789 123 456789 1\n";
+	printf STDERR ("Debug: %s   low: %08x %s\n",
+		       &int_2_bitstr($low), $low, $low_dot);
+	printf STDERR ("Debug: %s  high: %08x %s\n",
+		       &int_2_bitstr($high), $high, $high_dot);
+    }
+
+    # special case, addresses are the same
+    #
+    if ($low == $high) {
+	print &cidr_form($low, 32), "\n";
+	print STDERR "Debug: only one /32 address, done\n" if $opt_v;
+	exit 0;
+    }
+
+    # common and non-common bit calculations
+    #
+    # Determine the lowest high order common bit between the two addresses.
+    # Determine the integer value of these common high order bits.
+    # Determine the integer valoe of the low order non-common bits
+    # in both addresses.
+    #
+    $common = 0;
+    for ($high_diff_bit = 0; $high_diff_bit < 32; ++$high_diff_bit) {
+	$tmp = $low & $bit[$high_diff_bit];
+	last if $tmp != ($high & $bit[$high_diff_bit]);
+	$common += $tmp;
+    }
+    $low_noncomm = 0;
+    $high_noncomm = 0;
+    for ($i = $high_diff_bit; $i < 32; ++$i) {
+	$low_noncomm += $low & $bit[$i];
+	$high_noncomm += $high & $bit[$i];
+    }
+
+    # more debug information if -v
+    #
+    if ($opt_v) {
+	printf STDERR ("Debug: common: %08x/%d\n", $common, $high_diff_bit);
+	printf STDERR ("Debug:  low_noncomm: %08x\n", $low_noncomm);
+	printf STDERR ("Debug: high_noncomm: %08x\n", $high_noncomm);
+    }
+
+    # easy case - low non-common is 0 and high non-common is 2^n-1
+    #
+    # In this case we have only 1 CIRD address to produce.
+    #
+    if ($low_noncomm == 0 &&
+        (($high_diff_bit == 0 && $high_noncomm == 0xffffffff) ||
+	 ($bit[$high_diff_bit-1]-1 == $high_noncomm))) {
+	print &cidr_form($common, $high_diff_bit), "\n";
+	print STDERR "Debug: single CIDR, done\n" if $opt_v;
+	exit 0;
+    }
+
+    # At this point we know that $low_noncomm < $high_noncomm, and
+    # that they differ in the $high_diff_bit position.
+    #
+    # From the above it can be proven that the $high_diff_bit of
+    # $low_noncomm is 0 and of $high_noncomm is 1.
+    #
+    # We will build up $low_noncomm by processing CIDR addresses
+    # by looking for 1 bits or until we reach the $high_diff_bit position.
+    #
+    if ($opt_v) {
+	print STDERR "Debug:0  common+low_noncomm: ",
+	    &int_2_bitstr($common + $low_noncomm), "\n";
+	print STDERR "Debug:0 common+high_noncomm: ",
+	    &int_2_bitstr($common + $high_noncomm), "\n";
+    }
+    for ($i = 31; $i > $high_diff_bit; --$i) {
+
+	# If we see a 1 bit, report the CIDR address and add
+	# a power of two to set the bit to 0 and propagate the carry.
+	#
+	if ($low_noncomm & $bit[$i]) {
+	    print &cidr_form($common + $low_noncomm, $i+1), "\n";
+	    $low_noncomm += $bit[$i];
+	    if ($opt_v) {
+		print STDERR "Debug:1  common+low_noncomm: ",
+		    &int_2_bitstr($common + $low_noncomm), "\n";
+		print STDERR "Debug:1 common+high_noncomm: ",
+		    &int_2_bitstr($common + $high_noncomm), "\n";
+	    }
+	}
+    }
+
+    # semi-easy case - $high_noncomm is a bit mask filled with only 1 bits
+    #
+    # At this point we have just one more CIDR address if this is true.
+    #
+    if (($high_diff_bit == 0 && $high_noncomm == 0xffffffff) ||
+	($high_noncomm == $bit[$high_diff_bit-1]-1)) {
+	print &cidr_form($common + $low_noncomm, $high_diff_bit+1), "\n";
+	print STDERR "Debug: last CIDR, done\n" if $opt_v;
+	exit 0;
+    }
+
+    # At this point we know that there are 0 bits inside $high_noncomm, and
+    # the bits below $high_diff_bit in $low_noncomm are are 0's.
+    # 
+    # We build up $low_noncomm by adding in 1 bits found in $high_noncomm+1.
+    #
+    for ($i = $high_diff_bit; $i < 32; ++$i) {
+
+	# If we see a 1 bit, report the CIDR address and add
+	# a power of two to set the bit to 0 and propagate the carry.
+	#
+	if ($high_noncomm+1 & $bit[$i] &&
+	    ($low_noncomm + $bit[$i]) <= $high_noncomm+1) {
+	    print &cidr_form($common + $low_noncomm, $i+1), "\n";
+	    $low_noncomm += $bit[$i];
+	    if ($opt_v) {
+		print STDERR "Debug:3  common+low_noncomm: ",
+		    &int_2_bitstr($common + $low_noncomm), "\n";
+		print STDERR "Debug:3  common+lim_noncomm: ",
+		    &int_2_bitstr($common + $high_noncomm + 1), "\n";
+	    }
+	}
+    }
+
+    # all done
+    #
+    print "Debug: all done\n" if $opt_v;
+    exit 0;
+}
+
+
+# int_2_dot - convert an integer 32 bit address into .-ed octet form
+#
+# usage:
+#	$dot_ivp4 = &int_to_dot($int_addr);
+#
+# returns:
+#	.-ed octet address, or undef if invalid 32 bit integer address
+#
+sub int_2_dot($)
+{
+    my ($int_addr) = @_;	# get args
+
+    # firewall
+    #
+    if (! defined $int_addr) {
+	print "$0: int_2_dot: Error: undef arg\n";
+	return undef;
+    }
+    if ($int_addr < 0 || $int_addr > 0xffffffff) {
+	print "$0: int_2_addr: Error: $int_addr not a valid 32 bit address\n";
+	return undef;
+    }
+
+    return (($int_addr >> 24) % 256) . "." .
+    	   (($int_addr >> 16) % 256) . "." .
+    	   (($int_addr >>  8) % 256) . "." .
+    	   ($int_addr % 256);
+}
+
+
+# int_2_bitstr - convert a 32 bit integer into a octet spaced bit string
+#
+# usage:
+#	$string = &int_2_bitstr($integer);
+#
+# returns:
+#	Binary string with spaces at the octet boundaries
+#
+sub int_2_bitstr($)
+{
+    my ($int_addr) = @_;	# get args
+    my $str;
+    my $i;
+
+    # firewall
+    #
+    if (! defined $int_addr) {
+	print "$0: int_2_bitstr: Error: undef arg\n";
+	return undef;
+    }
+    if ($int_addr < 0 || $int_addr > 0xffffffff) {
+	print "$0: int_2_bitstr: Error: $int_addr not a valid 32 bit address\n";
+	return undef;
+    }
+
+    # form 1st octet of bits
+    #
+    $str = "";
+    for ($i=0; $i < 8; ++$i) {
+	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+    }
+    $str .= " ";
+
+    # form 2nd octet of bits
+    #
+    for ($i=8; $i < 16; ++$i) {
+	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+    }
+    $str .= " ";
+
+    # form 3rd octet of bits
+    #
+    for ($i=16; $i < 24; ++$i) {
+	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+    }
+    $str .= " ";
+
+    # form 4th octet of bits
+    #
+    for ($i=24; $i < 32; ++$i) {
+	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+    }
+
+    # return string
+    #
+    return $str;
+}
+
+
+# cannon_addr - canonicalize a .-ed IPV4 address
+#
+# usage:
+#	$addr = &cannon_addr("012.123.023.43");
+#
+# returns:
+#	.-ed IPV4 address with excess leading 0's removed
+#	undef if an invalid IP address
+#
+sub cannon_addr($)
+{
+    my ($addr) = @_;	# get arg
+    my ($a,$b,$c,$d);	# doted octet values
+
+    # firewall - in case passed undef
+    #
+    if (! defined $addr) {
+	print "$0: common_addr: Error: undef arg\n" if $opt_v;
+	return undef;
+    }
+
+    # must have 4 octet fields
+    #
+    if ($addr !~ /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
+	print "$0: Error: $addr not a valid .-ed IPV4 address\n" if $opt_v;
+	return undef;
+    }
+
+    # check each octet
+    #
+    $a = $1;
+    $b = $2;
+    $c = $3;
+    $d = $4;
+    $a =~ s/^0+//; $a = 0 if $a =~ /^$/;
+    $b =~ s/^0+//; $b = 0 if $b =~ /^$/;
+    $c =~ s/^0+//; $c = 0 if $c =~ /^$/;
+    $d =~ s/^0+//; $d = 0 if $d =~ /^$/;
+    if ($a > 255 || $b > 255 || $c > 255 || $d > 255) {
+	print "$0: Error: $addr has an octet value > 255\n";
+	return undef;
+    }
+
+    # return in cannonical form
+    #
+    return "$a.$b.$c.$d";
+}
+
+
+# int_addr - convert a valid IPV4 .-ed IP address into an integer
+#
+# usage:
+#	$integer = &int_addr("12.6.123.45");
+#
+# returns:
+#	IVP4 address as an unsigned integer
+#	-1 if passed undef
+#
+# NOTE: Use cannon_addr first, as in:
+#
+#	$integer = $int_addr(($addr = &cannon_addr($addr)));
+#	die "invalid address" if $integer < 0;
+#
+sub int_addr($)
+{
+    my ($addr) = @_;	# get arg
+    my ($a,$b,$c,$d);	# doted octet values
+
+    # firewall - in case passed undef such as from &cannon_addr()
+    #
+    if (! defined $addr) {
+	return -1;
+    }
+
+    # split addr into octets
+    #
+    ($a,$b,$c,$d) = split(/\./, $addr);
+
+    # return integer
+    #
+    return ($a << 24) + ($b << 16) + ($c << 8) + $d;
+}
+
+# cidr_form - return an address in .-ed octet CIDR form
+#
+# usage:
+#	$string = &cidr_form($int_addr, $bits);
+#
+# NOTE:
+#	Returns .-ed octet / bits CIDR address or undef if invalid args
+#
+sub cidr_form($$)
+{
+    my ($int_addr, $bits) = @_;		# get args
+
+    # firewall
+    #
+    if (! defined $int_addr || ! defined $bits) {
+	print "$0: cidr_form: Error: undef arg(s)\n";
+	return undef;
+    }
+
+    return &int_2_dot($int_addr) . "/" . $bits;
+}
