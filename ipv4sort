@@ -2,12 +2,16 @@
 #
 # ipv4sort - extract IPV4 addresses from files in sorted order
 #
-# @(#) $Revision: 1.1 $
-# @(#) $Id: ipv4sort,v 1.1 2000/06/21 08:30:00 chongo Exp chongo $
+# @(#) $Revision: 1.2 $
+# @(#) $Id: ipv4sort,v 1.2 2000/10/04 23:15:47 chongo Exp chongo $
 # @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4sort,v $
 #
 # usage:
-#	ipv4sort [-u] [file ...]
+#	ipv4sort [-d] [-w] [-u] [file ...]
+#
+#	-d	misc debugging
+#	-w	keep the whole line, sort on 1st IP address
+#	-u	keep only unique lines
 #
 # This utility will extract IP addresses from files (or STDIN if no args).
 # print them, in order, to STDOUT
@@ -40,30 +44,62 @@
 #
 use strict;
 use Getopt::Std;
-use vars qw($opt_u);
+use vars qw($opt_u $opt_w $opt_d);
 
 # ip address pattern
 #
-my $ip_exp = "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}";
+my $ip_exp = "[0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}";
 
 # Main function
 #
 MAIN:
 {
     my @ip_set;		# ip addresses found
+    my $line;		# current line being parsed
+    my $lineno;		# current line number
 
     # parse args
     #
-    if (!getopts('u')) {
-	die "usage: $0 [-u] [file ...]\n";
+    if (!getopts('dwu')) {
+	die "usage: $0 [-d] [-w] [-u] [file ...]\n" .
+	    "\n" .
+	    "\t-d\tmisc debugging\n" .
+	    "\t-u\tkeep only unique lines\n" .
+	    "\t-w\tkeep the whole line, sort on 1st IP address\n";
     }
 
     # extract IP address from STDIN
     #
-    undef $/;
-    while (<>) {
-	my @raw_data = grep { $_ =~ /^$ip_exp$/o } split(/[^0-9.]+/, $_);
-	push(@ip_set, @raw_data), "\n" if ($#raw_data >= 0);
+    if ($opt_w) {
+
+	# -w whole line keep/sorting
+	#
+	$lineno = 0;
+	while (defined($line = <>)) {
+	    
+	    # We will prepend 1st IP address on each line.  For lines
+	    # without an IP address, we will prepend 0.0.0.lineno.
+	    # We will remove these IP addresses before we output.
+	    #
+	    ++$lineno;
+	    if ($line =~ /($ip_exp)/o) {
+		# push with a leading IP address
+	    	push (@ip_set, "$1 #$line");
+	    } else {
+		# no IP in line, push with a leading IP address of 0.0.0.lineno
+	    	push (@ip_set, "0.0.0.$lineno #$line");
+	    }
+	}
+
+    } else {
+
+	# without -w, sort on each IP address found ignoring NON-ip addresses
+	#
+	undef $/;
+	while (<>) {
+	    my @raw_data = grep { $_ =~ /^$ip_exp$/o } split(/[^0-9.]+/, $_);
+	    push(@ip_set, @raw_data), "\n" if ($#raw_data >= 0);
+	}
     }
 
     # do nothing if no addresses found
@@ -86,9 +122,16 @@ MAIN:
 		$a->[1] <=> $b->[1] ||
 		$a->[2] <=> $b->[2] ||
 		$a->[3] <=> $b->[3] ||
-		$a->[4] <=> $b->[4]
+		$a->[4] <=> $b->[4] ||
+		$a <=> $b
 	      }
 	      map { [ $_, split /\./ ] } @ip_set;
+
+    # if -w, remove the prepended IP addresses from each line
+    #
+    if ($opt_w && !$opt_d) {
+	map { s/^[^#]*#// } @ip_set;
+    }
 
     # print the resules
     #
