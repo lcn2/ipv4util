@@ -2,12 +2,12 @@
 #
 # ipv4range - convert a range of IPV4 addrs into a set of address CIDR blocks
 #
-# @(#) $Revision$
-# @(#) $Id$
-# @(#) $Source$
+# @(#) $Revision: 1.1 $
+# @(#) $Id: ipv4range,v 1.1 2000/05/20 12:39:25 chongo Exp chongo $
+# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4range,v $
 #
 # usage:
-#	ipv4range [-v] [-c] dot.ed.ivp4.addr dot.ed.ipv4.addr
+#	ipv4range [-v] [-c] dot.ed.ivp4.addr [-] dot.ed.ipv4.addr
 #
 #	-v	print verbose / debug messages
 #	-o	using open range, address range stops 1 short of high addr
@@ -71,11 +71,14 @@ MAIN: {
     #
     $opt_v = 0;
     $opt_o = 0;
-    $usage = "$0 [-v] [-o] dot.ed.ipv4.addr dot.ed.ipv4.addr
+    $usage = "$0 [-v] [-o] dot.ed.ipv4.addr [-] dot.ed.ipv4.addr
 
 	-v	print verbose / debug messages
 	-o	using open range, address range stops 1 short of high addr";
-    if (!getopts('vo') || @ARGV != 2) {
+    if (!getopts('vo')) {
+	die "usage: $usage\n";
+    }
+    if ((@ARGV < 2) || (@ARGV > 3) || ((@ARGV == 3) && ($ARGV[1] ne "-"))) {
 	die "usage: $usage\n";
     }
 
@@ -90,7 +93,11 @@ MAIN: {
     $low = &int_addr(($low_dot = &cannon_addr($ARGV[0])));
     die "$0: low address: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
 	if ($low < 0);
-    $high = &int_addr(($high_dot = &cannon_addr($ARGV[1])));
+    if ($ARGV[1] eq "-") {
+	$high = &int_addr(($high_dot = &cannon_addr($ARGV[2])));
+    } else {
+	$high = &int_addr(($high_dot = &cannon_addr($ARGV[1])));
+    }
     die "$0: high address: $ARGV[1] is not a valid -.ed octet IPV4 address\n"
 	if ($high < 0);
 
