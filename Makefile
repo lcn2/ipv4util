@@ -2,8 +2,8 @@
 #
 # ipv4util - IPV4 address utilities
 #
-# @(#) $Revision: 1.2 $
-# @(#) $Id: Makefile,v 1.2 2000/05/28 20:31:51 chongo Exp chongo $
+# @(#) $Revision: 1.3 $
+# @(#) $Id: Makefile,v 1.3 2000/06/21 07:57:55 chongo Exp chongo $
 # @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/Makefile,v $
 #
 # Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
@@ -35,7 +35,7 @@ BINMODE=0555
 DESTDIR=/usr/local/bin
 INSTALL=install
 
-TARGETS= ipv4range ipv4addr ipv4sort
+TARGETS= ipv4range ipv4addr ipv4sort ipv4print
 
 all: ${TARGETS}
 
