@@ -2,9 +2,9 @@
 #
 # ipv4print - print a range of IPV4 addresses
 #
-# @(#) $Revision: 1.3 $
-# @(#) $Id: ipv4range,v 1.3 2000/10/04 23:16:06 chongo Exp $
-# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4range,v $
+# @(#) $Revision: 1.1 $
+# @(#) $Id: ipv4print,v 1.1 2000/10/24 05:09:48 chongo Exp chongo $
+# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4print,v $
 #
 # usage:
 #	ipv4print [-v] [-c] dot.ed.ivp4.addr [-] dot.ed.ipv4.addr
@@ -80,7 +80,7 @@ MAIN: {
     # deal with 1 arg that is a /CIDR address
     #
     if (@ARGV == 1 && $ARGV[0] =~
- 	 m:^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/([0-9]{1,2})$:) {
+ 	m:^([0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3})/([0-9]{1,2})$:) {
 
 	# extract address and CIDR
 	#
@@ -217,7 +217,7 @@ sub cannon_addr($)
 
     # must have 4 octet fields
     #
-    if ($addr !~ /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
+    if ($addr !~ /^([0-9]{1,3})[.]([0-9]{1,3})[.]([0-9]{1,3})[.]([0-9]{1,3})$/){
 	print "$0: Error: $addr not a valid .-ed IPV4 address\n" if $opt_v;
 	return undef;
     }
