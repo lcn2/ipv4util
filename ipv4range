@@ -2,8 +2,8 @@
 #
 # ipv4range - convert a range of IPV4 addrs into a set of address CIDR blocks
 #
-# @(#) $Revision: 1.3 $
-# @(#) $Id: ipv4range,v 1.3 2000/10/04 23:16:06 chongo Exp chongo $
+# @(#) $Revision: 1.4 $
+# @(#) $Id: ipv4range,v 1.4 2001/03/21 15:21:57 chongo Exp chongo $
 # @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4range,v $
 #
 # usage:
@@ -51,7 +51,7 @@ my @bit;	# bit[i] - 32 bit value, i-th bit set, highest bit is bit 0
 sub int_2_dot($);
 sub int_2_bitstr($);
 sub cannon_addr($);
-sub int_addr($);
+sub dot_2_int($);
 sub cidr_form($$);
 
 # Main function
@@ -98,13 +98,13 @@ MAIN: {
 
     # verify we have valid IP addresses and canonicalize them
     #
-    $low = int_addr(($low_dot = cannon_addr($ARGV[0])));
+    $low = dot_2_int(($low_dot = cannon_addr($ARGV[0])));
     die "$0: low address: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
 	if ($low < 0);
     if ($ARGV[1] eq "-") {
-	$high = int_addr(($high_dot = cannon_addr($ARGV[2])));
+	$high = dot_2_int(($high_dot = cannon_addr($ARGV[2])));
     } else {
-	$high = int_addr(($high_dot = cannon_addr($ARGV[1])));
+	$high = dot_2_int(($high_dot = cannon_addr($ARGV[1])));
     }
     die "$0: high address: $ARGV[1] is not a valid -.ed octet IPV4 address\n"
 	if ($high < 0);
@@ -265,30 +265,30 @@ MAIN: {
 # int_2_dot - convert an integer 32 bit address into .-ed octet form
 #
 # usage:
-#	$dot_ivp4 = int_to_dot($int_addr);
+#	$dot_ivp4 = int_to_dot($dot_2_int);
 #
 # returns:
 #	.-ed octet address, or undef if invalid 32 bit integer address
 #
 sub int_2_dot($)
 {
-    my ($int_addr) = @_;	# get args
+    my ($dot_2_int) = @_;	# get args
 
     # firewall
     #
-    if (! defined $int_addr) {
+    if (! defined $dot_2_int) {
 	print "$0: int_2_dot: Error: undef arg\n";
 	return undef;
     }
-    if ($int_addr < 0 || $int_addr > 0xffffffff) {
-	print "$0: int_2_addr: Error: $int_addr not a valid 32 bit address\n";
+    if ($dot_2_int < 0 || $dot_2_int > 0xffffffff) {
+	print "$0: int_2_addr: Error: $dot_2_int not a valid 32 bit address\n";
 	return undef;
     }
 
-    return (($int_addr >> 24) % 256) . "." .
-    	   (($int_addr >> 16) % 256) . "." .
-    	   (($int_addr >>  8) % 256) . "." .
-    	   ($int_addr % 256);
+    return (($dot_2_int >> 24) % 256) . "." .
+    	   (($dot_2_int >> 16) % 256) . "." .
+    	   (($dot_2_int >>  8) % 256) . "." .
+    	   ($dot_2_int % 256);
 }
 
 
@@ -302,18 +302,18 @@ sub int_2_dot($)
 #
 sub int_2_bitstr($)
 {
-    my ($int_addr) = @_;	# get args
+    my ($dot_2_int) = @_;	# get args
     my $str;
     my $i;
 
     # firewall
     #
-    if (! defined $int_addr) {
+    if (! defined $dot_2_int) {
 	print "$0: int_2_bitstr: Error: undef arg\n";
 	return undef;
     }
-    if ($int_addr < 0 || $int_addr > 0xffffffff) {
-	print "$0: int_2_bitstr: Error: $int_addr not a valid 32 bit address\n";
+    if ($dot_2_int < 0 || $dot_2_int > 0xffffffff) {
+	print "$0: int_2_bitstr: Error: $dot_2_int not a valid 32 bit address\n";
 	return undef;
     }
 
@@ -321,28 +321,28 @@ sub int_2_bitstr($)
     #
     $str = "";
     for ($i=0; $i < 8; ++$i) {
-	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+	$str .= ((($dot_2_int & $bit[$i]) == 0) ? "0" : "1");
     }
     $str .= " ";
 
     # form 2nd octet of bits
     #
     for ($i=8; $i < 16; ++$i) {
-	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+	$str .= ((($dot_2_int & $bit[$i]) == 0) ? "0" : "1");
     }
     $str .= " ";
 
     # form 3rd octet of bits
     #
     for ($i=16; $i < 24; ++$i) {
-	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+	$str .= ((($dot_2_int & $bit[$i]) == 0) ? "0" : "1");
     }
     $str .= " ";
 
     # form 4th octet of bits
     #
     for ($i=24; $i < 32; ++$i) {
-	$str .= ((($int_addr & $bit[$i]) == 0) ? "0" : "1");
+	$str .= ((($dot_2_int & $bit[$i]) == 0) ? "0" : "1");
     }
 
     # return string
@@ -400,10 +400,10 @@ sub cannon_addr($)
 }
 
 
-# int_addr - convert a valid IPV4 .-ed IP address into an integer
+# dot_2_int - convert a valid IPV4 .-ed IP address into an integer
 #
 # usage:
-#	$integer = int_addr("12.6.123.45");
+#	$integer = dot_2_int("12.6.123.45");
 #
 # returns:
 #	IVP4 address as an unsigned integer
@@ -411,10 +411,10 @@ sub cannon_addr($)
 #
 # NOTE: Use cannon_addr first, as in:
 #
-#	$integer = $int_addr(($addr = cannon_addr($addr)));
+#	$integer = $dot_2_int(($addr = cannon_addr($addr)));
 #	die "invalid address" if $integer < 0;
 #
-sub int_addr($)
+sub dot_2_int($)
 {
     my ($addr) = @_;	# get arg
     my ($a,$b,$c,$d);	# doted octet values
@@ -437,21 +437,21 @@ sub int_addr($)
 # cidr_form - return an address in .-ed octet CIDR form
 #
 # usage:
-#	$string = cidr_form($int_addr, $bits);
+#	$string = cidr_form($dot_2_int, $bits);
 #
 # NOTE:
 #	Returns .-ed octet / bits CIDR address or undef if invalid args
 #
 sub cidr_form($$)
 {
-    my ($int_addr, $bits) = @_;		# get args
+    my ($dot_2_int, $bits) = @_;		# get args
 
     # firewall
     #
-    if (! defined $int_addr || ! defined $bits) {
+    if (! defined $dot_2_int || ! defined $bits) {
 	print "$0: cidr_form: Error: undef arg(s)\n";
 	return undef;
     }
 
-    return int_2_dot($int_addr) . "/" . $bits;
+    return int_2_dot($dot_2_int) . "/" . $bits;
 }
