@@ -3,8 +3,8 @@
 # ipv4sort - extract IPV4 addresses from files in sorted order
 #
 # @(#) $Revision: 1.1 $
-# @(#) $Id: ipv4addr,v 1.1 2000/06/21 07:57:01 chongo Exp $
-# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4addr,v $
+# @(#) $Id: ipv4sort,v 1.1 2000/06/21 08:30:00 chongo Exp chongo $
+# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4sort,v $
 #
 # usage:
 #	ipv4sort [-u] [file ...]
@@ -48,7 +48,7 @@ my $ip_exp = "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}";
 
 # Main function
 #
-MAIN: 
+MAIN:
 {
     my @ip_set;		# ip addresses found
 
