@@ -2,8 +2,8 @@
 #
 # ipv4print - print a range of IPV4 addresses
 #
-# @(#) $Revision: 1.1 $
-# @(#) $Id: ipv4print,v 1.1 2000/10/24 05:09:48 chongo Exp chongo $
+# @(#) $Revision: 1.2 $
+# @(#) $Id: ipv4print,v 1.2 2001/03/21 15:21:57 chongo Exp chongo $
 # @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4print,v $
 #
 # usage:
@@ -94,13 +94,20 @@ MAIN: {
 	    die "usage: $usage\n";
 	}
 
-	# mask off the CIDR bits from low
+	# deal with /32 special case
 	#
-	$low = ($low & ((0xFFFFFFFF >> (32-$tmp)) << (32-$tmp)));
+	if ($tmp == 32) {
+	    $high = $low;
 
-	# form the high address
-	#
-	$high = $low + (0xFFFFFFFF >> $tmp);
+	} else {
+	    # mask off the CIDR bits from low
+	    #
+	    $low = ($low & ((0xFFFFFFFF >> (32-$tmp)) << (32-$tmp)));
+
+	    # form the high address
+	    #
+	    $high = $low + (0xFFFFFFFF >> $tmp);
+	}
 
     # deal with an unexpected number or type of addresses
     #
