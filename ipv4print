@@ -1,0 +1,300 @@
+#!/usr/bin/perl -wT
+#
+# ipv4print - print a range of IPV4 addresses
+#
+# @(#) $Revision: 1.3 $
+# @(#) $Id: ipv4range,v 1.3 2000/10/04 23:16:06 chongo Exp $
+# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4range,v $
+#
+# usage:
+#	ipv4print [-v] [-c] dot.ed.ivp4.addr [-] dot.ed.ipv4.addr
+#	ipv4print [-v] [-c] dot.ed.ivp4.addr/CIDR
+#
+#	-v	print verbose / debug messages
+#	-o	using open range, address range stops 1 short of high addr
+#
+# Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
+#
+# Permission to use, copy, modify, and distribute this software and
+# its documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright, this permission notice and text
+# this comment, and the disclaimer below appear in all of the following:
+#
+#       supporting documentation
+#       source copies
+#       source works derived from this source
+#       binaries derived from this source or from derived source
+#
+# LANDON CURT NOLL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+# EVENT SHALL LANDON CURT NOLL BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
+# USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+#
+# chongo <was here> /\oo/\
+#
+# Share and enjoy!
+
+# requirements
+#
+use strict;
+use Getopt::Std;
+use vars qw($opt_v $opt_o);
+
+# function prototypes
+#
+sub int_2_dot($);
+sub cannon_addr($);
+sub int_addr($);
+sub cidr_form($$);
+
+# Main function
+#
+MAIN: {
+
+    # my vars
+    #
+    my $usage;	# command line use
+    #
+    my $low;	# lower range address in numeric form
+    my $high;	# higher range address in numeric form
+    #
+    my $i;		# index
+    my $tmp;		# temp value
+
+    # parse args
+    #
+    $opt_v = 0;
+    $opt_o = 0;
+    $usage = "$0 [-v] [-o] dot.ed.ipv4.addr [-] dot.ed.ipv4.addr
+	$0 [-v] [-o] dot.ed.ipv4.addr/CIDR
+
+	-v	print verbose / debug messages
+	-o	using open range, address range stops 1 short of high addr";
+    if (!getopts('vo')) {
+	die "usage: $usage\n";
+    }
+
+    # deal with 1 arg that is a /CIDR address
+    #
+    if (@ARGV == 1 && $ARGV[0] =~
+ 	 m:^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/([0-9]{1,2})$:) {
+
+	# extract address and CIDR
+	#
+	$tmp = cannon_addr($1);
+	$low = int_addr($tmp);
+	die "$0: low address: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
+	    if ($low < 0);
+	$tmp = $2;
+	if ($tmp < 0 || $tmp > 32) {
+	    print STDERR "$0: /CIDR must be from /0 to /32 only\n";
+	    die "usage: $usage\n";
+	}
+
+	# mask off the CIDR bits from low
+	#
+	$low = ($low & ((0xFFFFFFFF >> (32-$tmp)) << (32-$tmp)));
+
+	# form the high address
+	#
+	$high = $low + (0xFFFFFFFF >> $tmp);
+
+    # deal with an unexpected number or type of addresses
+    #
+    } elsif ((@ARGV < 2) || 
+    	     (@ARGV > 3) ||
+    	     ((@ARGV == 3) && ($ARGV[1] ne "-"))) {
+	die "usage:\t$usage\n";
+
+   # deal with a dot.ed.ipv4.addr [-] dot.ed.ipv4.addr for
+   #
+   } else {
+
+	# verify we have valid IP addresses and canonicalize them
+	#
+	$low = int_addr(cannon_addr($ARGV[0]));
+	die "$0: low addr: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
+	    if ($low < 0);
+	if ($ARGV[1] eq "-") {
+	    $high = int_addr(cannon_addr($ARGV[2]));
+	} else {
+	    $high = int_addr(cannon_addr($ARGV[1]));
+	}
+	die "$0: high addr: $ARGV[1] is not a valid -.ed octet IPV4 address\n"
+	    if ($high < 0);
+
+	# swap addresses if not in numerical order
+	#
+	if ($low > $high) {
+	    $tmp = $low;
+	    $low = $high;
+	    $high = $tmp;
+	}
+    }
+
+    # convert to closed range of open range (-o)
+    #
+    if ($opt_o) {
+	--$high;
+	if ($high < $low) {
+	    die "$0: using open range (-o) with two equal addresses\n";
+	}
+    }
+
+    # Print debug information if -v
+    #
+    if ($opt_v) {
+	print STDERR " low: ", cannon_addr(int_2_dot($low)), " $low\n";
+	print STDERR "high: ", cannon_addr(int_2_dot($high)), " $high\n";
+    }
+
+    # print addresses thru range 
+    # 
+    for ($i = $low; $i <= $high; ++$i) {
+	print cannon_addr(int_2_dot($i)), "\n";
+    }
+
+    # all done
+    #
+    print "Debug: all done\n" if $opt_v;
+    exit 0;
+}
+
+
+# int_2_dot - convert an integer 32 bit address into .-ed octet form
+#
+# usage:
+#	$dot_ivp4 = int_to_dot($int_addr);
+#
+# returns:
+#	.-ed octet address, or undef if invalid 32 bit integer address
+#
+sub int_2_dot($)
+{
+    my ($int_addr) = @_;	# get args
+
+    # firewall
+    #
+    if (! defined $int_addr) {
+	print "$0: int_2_dot: Error: undef arg\n";
+	return undef;
+    }
+    if ($int_addr < 0 || $int_addr > 0xffffffff) {
+	print "$0: int_2_addr: Error: $int_addr not a valid 32 bit address\n";
+	return undef;
+    }
+
+    return (($int_addr >> 24) % 256) . "." .
+    	   (($int_addr >> 16) % 256) . "." .
+    	   (($int_addr >>  8) % 256) . "." .
+    	   ($int_addr % 256);
+}
+
+
+# cannon_addr - canonicalize a .-ed IPV4 address
+#
+# usage:
+#	$addr = cannon_addr("012.123.023.43");
+#
+# returns:
+#	.-ed IPV4 address with excess leading 0's removed
+#	undef if an invalid IP address
+#
+sub cannon_addr($)
+{
+    my ($addr) = @_;	# get arg
+    my ($a,$b,$c,$d);	# doted octet values
+
+    # firewall - in case passed undef
+    #
+    if (! defined $addr) {
+	print "$0: common_addr: Error: undef arg\n" if $opt_v;
+	return undef;
+    }
+
+    # must have 4 octet fields
+    #
+    if ($addr !~ /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
+	print "$0: Error: $addr not a valid .-ed IPV4 address\n" if $opt_v;
+	return undef;
+    }
+
+    # check each octet
+    #
+    $a = $1;
+    $b = $2;
+    $c = $3;
+    $d = $4;
+    $a =~ s/^0+//; $a = 0 if $a =~ /^$/;
+    $b =~ s/^0+//; $b = 0 if $b =~ /^$/;
+    $c =~ s/^0+//; $c = 0 if $c =~ /^$/;
+    $d =~ s/^0+//; $d = 0 if $d =~ /^$/;
+    if ($a > 255 || $b > 255 || $c > 255 || $d > 255) {
+	print "$0: Error: $addr has an octet value > 255\n";
+	return undef;
+    }
+
+    # return in cannonical form
+    #
+    return "$a.$b.$c.$d";
+}
+
+
+# int_addr - convert a valid IPV4 .-ed IP address into an integer
+#
+# usage:
+#	$integer = int_addr("12.6.123.45");
+#
+# returns:
+#	IVP4 address as an unsigned integer
+#	-1 if passed undef
+#
+# NOTE: Use cannon_addr first, as in:
+#
+#	$integer = $int_addr(($addr = cannon_addr($addr)));
+#	die "invalid address" if $integer < 0;
+#
+sub int_addr($)
+{
+    my ($addr) = @_;	# get arg
+    my ($a,$b,$c,$d);	# doted octet values
+
+    # firewall - in case passed undef such as from cannon_addr()
+    #
+    if (! defined $addr) {
+	return -1;
+    }
+
+    # split addr into octets
+    #
+    ($a,$b,$c,$d) = split(/\./, $addr);
+
+    # return integer
+    #
+    return ($a << 24) + ($b << 16) + ($c << 8) + $d;
+}
+
+# cidr_form - return an address in .-ed octet CIDR form
+#
+# usage:
+#	$string = cidr_form($int_addr, $bits);
+#
+# NOTE:
+#	Returns .-ed octet / bits CIDR address or undef if invalid args
+#
+sub cidr_form($$)
+{
+    my ($int_addr, $bits) = @_;		# get args
+
+    # firewall
+    #
+    if (! defined $int_addr || ! defined $bits) {
+	print "$0: cidr_form: Error: undef arg(s)\n";
+	return undef;
+    }
+
+    return int_2_dot($int_addr) . "/" . $bits;
+}
