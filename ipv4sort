@@ -2,8 +2,8 @@
 #
 # ipv4sort - extract IPV4 addresses from files in sorted order
 #
-# @(#) $Revision: 1.2 $
-# @(#) $Id: ipv4sort,v 1.2 2000/10/04 23:15:47 chongo Exp chongo $
+# @(#) $Revision: 1.3 $
+# @(#) $Id: ipv4sort,v 1.3 2001/03/21 15:22:50 chongo Exp chongo $
 # @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/ipv4sort,v $
 #
 # usage:
@@ -81,6 +81,7 @@ MAIN:
 	    # without an IP address, we will prepend 0.0.0.lineno.
 	    # We will remove these IP addresses before we output.
 	    #
+	    chomp $line;
 	    ++$lineno;
 	    if ($line =~ /($ip_exp)/o) {
 		# push with a leading IP address
