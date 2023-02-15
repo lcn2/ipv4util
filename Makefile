@@ -2,9 +2,9 @@
 #
 # ipv4util - IPV4 address utilities
 #
-# @(#) $Revision: 1.3 $
-# @(#) $Id: Makefile,v 1.3 2000/06/21 07:57:55 chongo Exp chongo $
-# @(#) $Source: /usr/local/src/cmd/ipv4util/RCS/Makefile,v $
+# @(#) $Revision: 1.4 $
+# @(#) $Id: Makefile,v 1.4 2000/10/24 05:10:06 chongo Exp $
+# @(#) $Source: /usr/local/src/bin/ipv4util/RCS/Makefile,v $
 #
 # Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
 #
