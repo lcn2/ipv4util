@@ -1,12 +1,8 @@
-#!/usr/bin/make
+#!/usr/bin/env make
 #
 # ipv4util - IPV4 address utilities
 #
-# @(#) $Revision: 1.4 $
-# @(#) $Id: Makefile,v 1.4 2000/10/24 05:10:06 chongo Exp $
-# @(#) $Source: /usr/local/src/bin/ipv4util/RCS/Makefile,v $
-#
-# Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2000,2023 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
@@ -30,10 +26,10 @@
 #
 # Share and enjoy!
 
-SHELL=/bin/sh
-BINMODE=0555
-DESTDIR=/usr/local/bin
-INSTALL=install
+SHELL= bash
+BINMODE= 0555
+DESTDIR= /usr/local/bin
+INSTALL= install
 
 TARGETS= ipv4range ipv4addr ipv4sort ipv4print
 
