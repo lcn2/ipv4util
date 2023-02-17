@@ -1,10 +1,6 @@
-#!/usr/bin/perl -T
+#!/usr/bin/env perl -w
 #
 # ipv4sort - extract IPV4 addresses from files in sorted order
-#
-# @(#) $Revision: 1.7 $
-# @(#) $Id: ipv4sort,v 1.7 2004/05/21 15:21:16 chongo Exp $
-# @(#) $Source: /usr/local/src/bin/ipv4util/RCS/ipv4sort,v $
 #
 # usage:
 #	ipv4sort [-d] [-e] [-w] [-u] [file ...]
@@ -17,7 +13,7 @@
 # This utility will extract IP addresses from files (or STDIN if no args).
 # print them, in order, to STDOUT
 #
-# Copyright (c) 2000-2002 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2000-2002,2023 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,

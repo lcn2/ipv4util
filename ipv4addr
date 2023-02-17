@@ -1,10 +1,6 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -w
 #
 # ipv4addr - extract IPV4 addresses from files
-#
-# @(#) $Revision: 1.4 $
-# @(#) $Id: ipv4addr,v 1.4 2004/05/21 15:21:16 chongo Exp $
-# @(#) $Source: /usr/local/src/bin/ipv4util/RCS/ipv4addr,v $
 #
 # usage:
 #	ipv4addr [file ...]
@@ -12,7 +8,7 @@
 # This utility will extract IP addresses from files (or STDIN if no args).
 # print them, in order, to STDOUT
 #
-# Copyright (c) 2000 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2000,2023 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
