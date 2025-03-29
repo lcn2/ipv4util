@@ -1,6 +1,6 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
-# ipv4print - print a range of IPV4 addresses
+# ipv4print - print a range of IPv4 addresses
 #
 # usage:
 #	ipv4print [-v] [-c] dot.ed.ivp4.addr [-] dot.ed.ipv4.addr
@@ -9,7 +9,7 @@
 #	-v	print verbose / debug messages
 #	-o	using open range, address range stops 1 short of high addr
 #
-# Copyright (c) 2000,2023 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2000-2002,2004,2006,2023,2025 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
@@ -37,8 +37,46 @@
 #
 use strict;
 use bytes;
-use Getopt::Std;
-use vars qw($opt_v $opt_o);
+use vars qw($opt_h $opt_v $opt_V $opt_o);
+use Getopt::Long qw(:config no_ignore_case);
+use File::Basename;
+
+# version
+#
+my $VERSION = "1.6.1 2025-03-28";
+
+# my vars
+#
+my $NAME = basename($0);
+
+# usage and help
+#
+my $usage = "$NAME [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr [ignored] dot.ed.ipv4.addr";
+my $usage2 = "$NAME [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr/CIDR";
+my $help = qq{$usage
+$usage2
+
+    -h              print help and exit
+    -v lvl          verbose / debug level
+    -V              print version and exit
+
+    -o              using open range, address range stops 1 short of high
+
+    dot.ed.ivp4.addr    starting IPv4 address
+    [ignored]           igonored optional arg
+    dot.ed.ipv4.addr    ending IPv4 address
+
+    NOTE: When given 3 args, the 2nd arg is ignored.
+
+    dot.ed.ivp4.addr/CIDR   IPv4 address and CIDR block
+
+$NAME version: $VERSION};
+my %optctl = (
+    "h" => \$opt_h,
+    "v=i" => \$opt_v,
+    "V" => \$opt_V,
+    "o" => \$opt_o,
+);
 
 # function prototypes
 #
@@ -46,6 +84,7 @@ sub int_2_dot($);
 sub cannon_addr($);
 sub int_addr($);
 sub cidr_form($$);
+sub error($@);
 
 # Main function
 #
@@ -63,27 +102,35 @@ MAIN: {
 
     # parse args
     #
+    $opt_h = 0;
     $opt_v = 0;
+    $opt_V = 0;
     $opt_o = 0;
-    $usage = "$0 [-v] [-o] dot.ed.ipv4.addr [-] dot.ed.ipv4.addr
-	$0 [-v] [-o] dot.ed.ipv4.addr/CIDR
 
-	-v	print verbose / debug messages
-	-o	using open range, address range stops 1 short of high addr";
-    if (!getopts('vo')) {
-	die "usage: $usage\n";
+    # parse args
+    #
+    if (!GetOptions(%optctl)) {
+        error(1, "invalid command line\nusage: $help");
+    }
+    if ($opt_h) {
+        print "$help\n";
+        exit(0);
+    }
+    if ($opt_V) {
+        print "$VERSION\n";
+        exit(0);
     }
 
     # deal with 1 arg that is a /CIDR address
     #
     if (@ARGV == 1 && $ARGV[0] =~
- 	m:^([0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3})/([0-9]{1,2})$:) {
+	m:^([0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3})/([0-9]{1,2})$:) {
 
 	# extract address and CIDR
 	#
 	$tmp = cannon_addr($1);
 	$low = int_addr($tmp);
-	die "$0: low address: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
+	die "$0: low address: $ARGV[0] is not a valid -.ed octet IPv4 address\n"
 	    if ($low < 0);
 	$tmp = $2;
 	if ($tmp < 0 || $tmp > 32) {
@@ -108,9 +155,9 @@ MAIN: {
 
     # deal with an unexpected number or type of addresses
     #
-    } elsif ((@ARGV < 2) || 
-    	     (@ARGV > 3) ||
-    	     ((@ARGV == 3) && ($ARGV[1] ne "-"))) {
+    } elsif ((@ARGV < 2) ||
+	     (@ARGV > 3) ||
+	     ((@ARGV == 3) && ($ARGV[1] ne "-"))) {
 	die "usage:\t$usage\n";
 
    # deal with a dot.ed.ipv4.addr [-] dot.ed.ipv4.addr for
@@ -120,14 +167,14 @@ MAIN: {
 	# verify we have valid IP addresses and canonicalize them
 	#
 	$low = int_addr(cannon_addr($ARGV[0]));
-	die "$0: low addr: $ARGV[0] is not a valid -.ed octet IPV4 address\n"
+	die "$0: low addr: $ARGV[0] is not a valid -.ed octet IPv4 address\n"
 	    if ($low < 0);
 	if ($ARGV[1] eq "-") {
 	    $high = int_addr(cannon_addr($ARGV[2]));
 	} else {
 	    $high = int_addr(cannon_addr($ARGV[1]));
 	}
-	die "$0: high addr: $ARGV[1] is not a valid -.ed octet IPV4 address\n"
+	die "$0: high addr: $ARGV[1] is not a valid -.ed octet IPv4 address\n"
 	    if ($high < 0);
 
 	# swap addresses if not in numerical order
@@ -155,8 +202,8 @@ MAIN: {
 	print STDERR "high: ", cannon_addr(int_2_dot($high)), " $high\n";
     }
 
-    # print addresses thru range 
-    # 
+    # print addresses thru range
+    #
     for ($i = $low; $i <= $high; ++$i) {
 	print cannon_addr(int_2_dot($i)), "\n";
     }
@@ -192,19 +239,19 @@ sub int_2_dot($)
     }
 
     return (($int_addr >> 24) % 256) . "." .
-    	   (($int_addr >> 16) % 256) . "." .
-    	   (($int_addr >>  8) % 256) . "." .
-    	   ($int_addr % 256);
+	   (($int_addr >> 16) % 256) . "." .
+	   (($int_addr >>  8) % 256) . "." .
+	   ($int_addr % 256);
 }
 
 
-# cannon_addr - canonicalize a .-ed IPV4 address
+# cannon_addr - canonicalize a .-ed IPv4 address
 #
 # usage:
 #	$addr = cannon_addr("012.123.023.43");
 #
 # returns:
-#	.-ed IPV4 address with excess leading 0's removed
+#	.-ed IPv4 address with excess leading 0's removed
 #	undef if an invalid IP address
 #
 sub cannon_addr($)
@@ -222,7 +269,7 @@ sub cannon_addr($)
     # must have 4 octet fields
     #
     if ($addr !~ /^([0-9]{1,3})[.]([0-9]{1,3})[.]([0-9]{1,3})[.]([0-9]{1,3})$/){
-	print "$0: Error: $addr not a valid .-ed IPV4 address\n" if $opt_v;
+	print "$0: Error: $addr not a valid .-ed IPv4 address\n" if $opt_v;
 	return undef;
     }
 
@@ -247,7 +294,7 @@ sub cannon_addr($)
 }
 
 
-# int_addr - convert a valid IPV4 .-ed IP address into an integer
+# int_addr - convert a valid IPv4 .-ed IP address into an integer
 #
 # usage:
 #	$integer = int_addr("12.6.123.45");
@@ -301,4 +348,40 @@ sub cidr_form($$)
     }
 
     return int_2_dot($int_addr) . "/" . $bits;
+}
+
+
+# error - report an error and exit
+#
+# given:
+#       $exitval        exit code value
+#       $msg ...        error debug message to print
+#
+sub error($@)
+{
+    my ($exitval) = shift @_;   # get args
+    my $msg;                    # error message to print
+
+    # parse args
+    #
+    if (!defined $exitval) {
+        $exitval = 254;
+    }
+    if ($#_ < 0) {
+        $msg = "<<< no message supplied >>>";
+    } else {
+        $msg = join(' ', @_);
+    }
+    if ($exitval =~ /\D/) {
+        $msg .= "<<< non-numeric exit code: $exitval >>>";
+        $exitval = 253;
+    }
+
+    # issue the error message
+    #
+    print STDERR "$0: $msg\n";
+
+    # issue an error message
+    #
+    exit($exitval);
 }

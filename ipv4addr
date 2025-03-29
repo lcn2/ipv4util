@@ -1,14 +1,11 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
-# ipv4addr - extract IPV4 addresses from files
-#
-# usage:
-#	ipv4addr [file ...]
+# ipv4addr - extract IPv4 addresses from files
 #
 # This utility will extract IP addresses from files (or STDIN if no args).
 # print them, in order, to STDOUT
 #
-# Copyright (c) 2000,2023 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2000-2002,2004,2006,2023,2025 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
@@ -36,15 +33,71 @@
 #
 use strict;
 use bytes;
+use vars qw($opt_h $opt_V);
+use Getopt::Long qw(:config no_ignore_case);
+use File::Basename;
+
+# version
+#
+my $VERSION = "1.6.1 2025-03-28";
+
+# my vars
+#
+my $NAME = basename($0);
 
 # ip address pattern
 #
 my $ip_exp = "[0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}";
 
+# usage and help
+#
+my $usage = "$NAME [-h] [-V] [file ...]";
+my $help = qq{$usage
+
+    -h              print help and exit
+    -V              print version and exit
+
+    [file ...]	    process data in file(s) (def: read stdin)
+
+$NAME version: $VERSION};
+my %optctl = (
+    "h" => \$opt_h,
+    "V" => \$opt_V
+);
+
+# function prototypes
+#
+sub error($@);
+
+
 # Main function
 #
-MAIN: 
+MAIN:
 {
+    # setup
+    #
+    select(STDOUT);
+    $| = 1;
+
+    # set the defaults
+    #
+    $opt_h = 0;
+    $opt_V = 0;
+
+    # parse args
+    #
+    if (!GetOptions(%optctl)) {
+        error(1, "invalid command line\nusage: $help");
+    }
+    if ($opt_h) {
+        print "$help\n";
+        exit(0);
+    }
+    if ($opt_V) {
+        print "$VERSION\n";
+        exit(0);
+    }
+
     # extract IP address from STDIN
     #
     undef $/;
@@ -52,4 +105,40 @@ MAIN:
 	my @raw_data = grep { $_ =~ /^$ip_exp$/o } split(/[^0-9.]+/, $_);
 	print join("\n", @raw_data), "\n" if @raw_data;
     }
+}
+
+
+# error - report an error and exit
+#
+# given:
+#       $exitval        exit code value
+#       $msg ...        error debug message to print
+#
+sub error($@)
+{
+    my ($exitval) = shift @_;   # get args
+    my $msg;                    # error message to print
+
+    # parse args
+    #
+    if (!defined $exitval) {
+        $exitval = 254;
+    }
+    if ($#_ < 0) {
+        $msg = "<<< no message supplied >>>";
+    } else {
+        $msg = join(' ', @_);
+    }
+    if ($exitval =~ /\D/) {
+        $msg .= "<<< non-numeric exit code: $exitval >>>";
+        $exitval = 253;
+    }
+
+    # issue the error message
+    #
+    print STDERR "$0: $msg\n";
+
+    # issue an error message
+    #
+    exit($exitval);
 }
