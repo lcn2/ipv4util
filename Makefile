@@ -53,7 +53,8 @@ SHELL= bash
 V=@:
 #V=@
 
-DESTDIR= /usr/local/bin
+PREFIX= /usr/local
+DESTDIR= ${PREFIX}/bin
 
 TARGETS= ipv4range ipv4addr ipv4sort ipv4print
 
