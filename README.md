@@ -16,87 +16,6 @@ sudo make install
 ```
 
 
-# To use
-
-
-## ipv4addr - extract IPv4 addresses from files
-
-```
-/usr/local/bin/ipv4addr [-h] [-V] [file ...]
-
-    -h              print help and exit
-    -V              print version and exit
-
-    [file ...]	    process data in file(s) (def: read stdin)
-
-ipv4addr version: 1.6.1 2025-03-28
-```
-
-
-## ipv4print - print a range of IPv4 addresses
-
-```
-/usr/local/bin/ipv4print [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr [ignored] dot.ed.ipv4.addr
-/usr/local/bin/ipv4print [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr/CIDR
-
-    -h              print help and exit
-    -v lvl          verbose / debug level
-    -V              print version and exit
-
-    -o              using open range, address range stops 1 short of high
-
-    dot.ed.ivp4.addr    starting IPv4 address
-    [ignored]           igonored optional arg
-    dot.ed.ipv4.addr    ending IPv4 address
-
-    NOTE: When given 3 args, the 2nd arg is ignored.
-
-    dot.ed.ivp4.addr/CIDR   IPv4 address and CIDR block
-
-ipv4print version: 1.6.1 2025-03-28
-```
-
-
-## ipv4range - convert a range of IPv4 addrs into a set of address CIDR blocks
-
-```
-/usr/local/bin/ipv4range [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr [ignored] dot.ed.ipv4.addr
-
-    -h              print help and exit
-    -v lvl          verbose / debug level
-    -V              print version and exit
-
-    -o              using open range, address range stops 1 short of high
-
-    dot.ed.ivp4.addr    starting IPv4 address
-    [ignored]           igonored optional arg
-    dot.ed.ipv4.addr    ending IPv4 address
-
-    NOTE: When given 3 args, the 2nd arg is ignored.
-
-ipv4range version: 1.6.1 2025-03-28
-```
-
-
-## ipv4sort - extract IPv4 addresses from files in sorted order
-
-```
-/usr/local/bin/ipv4sort [-h] [-V] [-d] [-e] [-w] [-u] [file ...]
-
-    -h              print help and exit
-    -V              print version and exit
-
-    -d		    misc debugging
-    -e		    just extract IP addresses and sort them (no -w)
-    -w		    keep the whole line, sort on 1st IP address (default unless -e)
-    -u		    keep only unique lines
-
-    [file ...]	    process data in file(s) (def: read stdin)
-
-ipv4sort version: 1.6.1 2025-03-28
-```
-
-
 # Examples
 
 
@@ -238,6 +157,87 @@ $ /usr/local/bin/ipv4sort -e /var/log/http/access.log
 10.89.170.186
 10.189.106.114
 ...
+```
+
+
+# To use
+
+
+## ipv4addr - extract IPv4 addresses from files
+
+```
+/usr/local/bin/ipv4addr [-h] [-V] [file ...]
+
+    -h              print help and exit
+    -V              print version and exit
+
+    [file ...]	    process data in file(s) (def: read stdin)
+
+ipv4addr version: 1.6.1 2025-03-28
+```
+
+
+## ipv4print - print a range of IPv4 addresses
+
+```
+/usr/local/bin/ipv4print [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr [ignored] dot.ed.ipv4.addr
+/usr/local/bin/ipv4print [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr/CIDR
+
+    -h              print help and exit
+    -v lvl          verbose / debug level
+    -V              print version and exit
+
+    -o              using open range, address range stops 1 short of high
+
+    dot.ed.ivp4.addr    starting IPv4 address
+    [ignored]           igonored optional arg
+    dot.ed.ipv4.addr    ending IPv4 address
+
+    NOTE: When given 3 args, the 2nd arg is ignored.
+
+    dot.ed.ivp4.addr/CIDR   IPv4 address and CIDR block
+
+ipv4print version: 1.6.1 2025-03-28
+```
+
+
+## ipv4range - convert a range of IPv4 addrs into a set of address CIDR blocks
+
+```
+/usr/local/bin/ipv4range [-h] [-v lvl] [-V] [-o] dot.ed.ivp4.addr [ignored] dot.ed.ipv4.addr
+
+    -h              print help and exit
+    -v lvl          verbose / debug level
+    -V              print version and exit
+
+    -o              using open range, address range stops 1 short of high
+
+    dot.ed.ivp4.addr    starting IPv4 address
+    [ignored]           igonored optional arg
+    dot.ed.ipv4.addr    ending IPv4 address
+
+    NOTE: When given 3 args, the 2nd arg is ignored.
+
+ipv4range version: 1.6.1 2025-03-28
+```
+
+
+## ipv4sort - extract IPv4 addresses from files in sorted order
+
+```
+/usr/local/bin/ipv4sort [-h] [-V] [-d] [-e] [-w] [-u] [file ...]
+
+    -h              print help and exit
+    -V              print version and exit
+
+    -d		    misc debugging
+    -e		    just extract IP addresses and sort them (no -w)
+    -w		    keep the whole line, sort on 1st IP address (default unless -e)
+    -u		    keep only unique lines
+
+    [file ...]	    process data in file(s) (def: read stdin)
+
+ipv4sort version: 1.6.1 2025-03-28
 ```
 
 
